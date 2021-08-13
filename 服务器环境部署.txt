@@ -1,0 +1,83 @@
+生产环境： https://campaign-mall.fuchuang-auto.com
+测试环境： https://test-campaign-mall.fuchuang-auto.com
+生产预发服务器： 212.129.163.132:43322
+UAT测试服务器：  212.129.163.132:23322
+ groupadd www-data
+ useradd -g www-data www-data -s /bin/bash
+
+ 添加公钥到authorized_keys
+    cat <your_key >>~/.ssh/authorized_keys
+ssh登录
+    Ssh -I 公钥名 root@地址 -p 端口号
+
+
+chown -R www-data:www-data ./default/
+
+
+ 重新登录服务器
+
+ 切换到之前新增到用户
+
+ su www-data
+
+ 生成密钥（在www-data下）
+
+ ssh-keygen -t rsa
+
+ 然后把创建到公钥给我
+
+
+ 初始化 git 仓库
+
+ cd /home/wwwroot/default/ && git init
+ git remote add origin git@gitee.com:normcore-tech/mobil_2020_no1-experiencer_h5_backend.git
+//正式环境只需要pull master
+//切换分支 git checkout develop
+git pull origin master && git checkout -b develop && git pull origin develop
+
+ 初始化 php 配置文件
+//正式环境.env.p
+ cat .env.develop > .env
+
+ 初始化数据库
+
+ php artisan migrate:refresh --seed
+
+用户变成www-data，需要修改nginx.conf文件内的www为www-data
+cd /usr/local/nginx/conf/
+vim nginx.conf
+
+验证并重启nginx
+nginx -t  &&  nginx -s reload
+
+修改php配置文件内的www为www-data
+cd /usr/local/php/etc/php-fpm.d/
+cp www.conf.default www.conf
+vim www.conf
+如果/usr/local/php/etc/php-fpm.conf文件中包含了www.conf的内容 则只需要修改php-fpm.conf
+'''
+listen.owner = www
+listen.group = www
+listen.mode = 0666
+user = www
+group = www
+'''
+vim php-fpm.conf
+重启PHP
+ps aux | grep php
+找到root 'PID'
+kill -USR2 'PID'
+
+修改nginx.conf文件
+//修改文件目录
+root  /home/wwwroot/default/public
+
+//删除nginx状态
+location /nginx_status
+        {
+            stub_status on;
+            access_log   off;
+        }
+
+//引入框架配置文件
+include enable-laravel.conf;
